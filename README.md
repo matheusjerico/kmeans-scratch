@@ -26,6 +26,8 @@ elbow point, variando o valor de K e indicar qual o
 melhor valor
 - compare os resultados obtidos pelo seu
 algoritmo com os da função do K-Means do sklearn
+- adicionar parâmetro com a quantidade de
+centroides K variável
 
 
 #### 1. Bibliotecas
