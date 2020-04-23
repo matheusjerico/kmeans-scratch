@@ -17,18 +17,6 @@ O relatório será o notebook exportado para um arquivo HTML e deve conter:
 - Para cada cluster, também devem ser exibidas as distâncias médias entre os pontos e seu respectivo centróide final
 - Discorra sobre cada cluster: o que eles indicam?
 
-#### Desafios: 
-- Implementar uma visualização iterativa do
-processo de treinamento igual ao gif do início da
-aula
-- plotar o gráfico que permite visualizar o
-elbow point, variando o valor de K e indicar qual o
-melhor valor
-- compare os resultados obtidos pelo seu
-algoritmo com os da função do K-Means do sklearn
-- adicionar parâmetro com a quantidade de
-centroides K variável
-
 
 #### 1. Bibliotecas
 
@@ -45,7 +33,7 @@ from copy import deepcopy
 
 
 ```python
-dataset = pd.read_csv("Dataset/base-covid-19-us.csv")
+dataset = pd.read_csv("./Dataset/base-covid-19-us.csv")
 dataset.head()
 ```
 
@@ -127,7 +115,7 @@ plt.scatter(cases, deaths, c='black', s=10)
 
 
 
-    <matplotlib.collections.PathCollection at 0x7fe37a035898>
+    <matplotlib.collections.PathCollection at 0x7f6aa2c66908>
 
 
 
@@ -292,12 +280,16 @@ dataset.head()
 
 
 ```python
-colors = ['r', 'g', 'b', 'y', 'c', 'm']
-fig, ax = plt.subplots()
-for i in range(kmeans.k):
+def plot_Kmeans():
+  colors = ['r', 'g', 'b', 'y', 'c', 'm']
+  ig, ax = plt.subplots()
+  for i in range(kmeans.k):
         points = np.array([X[j] for j in range(len(X)) if kmeans.clusters[j] == i])
         ax.scatter(points[:, 0], points[:, 1], s=7, c=colors[i])
-        ax.scatter(kmeans.centroids[:, 0], kmeans.centroids[:, 1], marker='X', s=100, c='black')
+        ax.scatter(kmeans.centroids[:, 0], kmeans.centroids[:, 1], marker='X', s=100, c='black')       
+        ax.set_xlabel('Cases')
+        ax.set_ylabel('Deaths')
+plot_Kmeans()
 ```
 
 
@@ -388,7 +380,7 @@ plt.scatter(cases, deaths, c='black', s=10)
 
 
 
-    <matplotlib.collections.PathCollection at 0x7fe379eeb518>
+    <matplotlib.collections.PathCollection at 0x7f6aa2bc68d0>
 
 
 
@@ -407,9 +399,9 @@ kmeans.fit()
 colors = ['r', 'g', 'b', 'y', 'c', 'm']
 fig, ax = plt.subplots()
 for i in range(kmeans.k):
-        points = np.array([X[j] for j in range(len(X)) if kmeans.clusters[j] == i])
-        ax.scatter(points[:, 0], points[:, 1], s=7, c=colors[i])
-        ax.scatter(kmeans.centroids[:, 0], kmeans.centroids[:, 1], marker='X', s=100, c='black')
+      points = np.array([X[j] for j in range(len(X)) if kmeans.clusters[j] == i])
+      ax.scatter(points[:, 0], points[:, 1], s=7, c=colors[i])
+      ax.scatter(kmeans.centroids[:, 0], kmeans.centroids[:, 1], marker='X', s=100, c='black')
 ```
 
 
@@ -424,8 +416,8 @@ kmeans.centroids
 
 
 
-    array([[1.8495167e+05, 2.7943333e+03],
-           [1.0462534e+03, 2.5062702e+01],
+    array([[1.0462534e+03, 2.5062702e+01],
+           [1.8495167e+05, 2.7943333e+03],
            [5.7526105e+04, 1.6201578e+03]], dtype=float32)
 
 
@@ -467,10 +459,59 @@ print("Distância média (eixo X) entre os pontos do centroide 2.0: {}".format(n
 print("Distância média (eixo Y) entre os pontos do centroide 2.0: {}".format(np.mean(dataset[dataset['cluster']==2.0]['distancia_y'])))
 ```
 
-    Distância média (eixo X) entre os pontos do centroide 0.0: 4149.557291666667
-    Distância média (eixo Y) entre os pontos do centroide 0.0: 821.111083984375
-    Distância média (eixo X) entre os pontos do centroide 1.0: 1413.854592873808
-    Distância média (eixo Y) entre os pontos do centroide 1.0: 35.405063352973215
+    Distância média (eixo X) entre os pontos do centroide 0.0: 1413.854592873808
+    Distância média (eixo Y) entre os pontos do centroide 0.0: 35.405063352973215
+    Distância média (eixo X) entre os pontos do centroide 1.0: 4149.557291666667
+    Distância média (eixo Y) entre os pontos do centroide 1.0: 821.111083984375
     Distância média (eixo X) entre os pontos do centroide 2.0: 15709.806126644737
     Distância média (eixo Y) entre os pontos do centroide 2.0: 834.6925177323191
 
+
+
+```python
+# Desafio: compare os resultados obtidos pelo seu algoritmo com os da função do K-Means do sklearn
+from sklearn.cluster import KMeans
+def fit_sKmeans(pontos = X, parada = 0.0001, max_iteracoes = 100,k=3):
+  sKmeans = KMeans(n_clusters=k, tol = parada, max_iter = max_iteracoes)
+  sKmeans.fit(pontos)
+  y_kmeans = sKmeans.predict(pontos)
+# desenhando   
+  plt.scatter(pontos[:, 0], pontos[:, 1], c=y_kmeans, s=7)
+  centers = sKmeans.cluster_centers_
+  plt.scatter(centers[:, 0], centers[:, 1], c='black', s=200, alpha=0.5)
+  plt.title('K-means com sklearn')
+  plt.xlabel('Cases')
+  plt.ylabel('Deaths')
+  print ('Centroids, com sklearn:',centers) 
+
+```
+
+
+```python
+#executando - com sklearn
+fit_sKmeans()
+# k_means sem o sklearn
+plot_Kmeans()
+print ('Centroides com k-means:', kmeans.centroids) 
+```
+
+    Centroids, com sklearn: [[1.04625339e+03 2.50627020e+01]
+     [5.75261053e+04 1.62015789e+03]
+     [1.84951667e+05 2.79433333e+03]]
+    Centroides com k-means: [[1.0462534e+03 2.5062702e+01]
+     [1.8495167e+05 2.7943333e+03]
+     [5.7526105e+04 1.6201578e+03]]
+
+
+
+![png](imagens/output_41_1.png)
+
+
+
+![png](imagens/output_41_2.png)
+
+
+
+```python
+
+```
