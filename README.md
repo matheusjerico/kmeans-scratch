@@ -17,6 +17,18 @@ O relatório será o notebook exportado para um arquivo HTML e deve conter:
 - Para cada cluster, também devem ser exibidas as distâncias médias entre os pontos e seu respectivo centróide final
 - Discorra sobre cada cluster: o que eles indicam?
 
+#### Desafios: 
+- Implementar uma visualização iterativa do
+processo de treinamento igual ao gif do início da
+aula
+- plotar o gráfico que permite visualizar o
+elbow point, variando o valor de K e indicar qual o
+melhor valor
+- compare os resultados obtidos pelo seu
+algoritmo com os da função do K-Means do sklearn
+- adicionar parâmetro com a quantidade de
+centroides K variável
+
 
 #### 1. Bibliotecas
 
