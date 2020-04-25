@@ -33,7 +33,7 @@ from copy import deepcopy
 
 
 ```python
-dataset = pd.read_csv("Dataset/base-covid-19-us.csv")
+dataset = pd.read_csv("./Dataset/base-covid-19-us.csv")
 dataset.head()
 ```
 
@@ -41,6 +41,19 @@ dataset.head()
 
 
 <div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -115,28 +128,31 @@ plt.scatter(cases, deaths, c='black', s=10)
 
 
 
-    <matplotlib.collections.PathCollection at 0x7fe37a035898>
+    <matplotlib.collections.PathCollection at 0x7fe0e8318588>
 
 
 
 
-![png](imagens/output_10_1.png)
+![png](imagens/kmeans_scratch_10_1.png)
 
 
 #### 3. Criando classe do KMeans
 
 
 ```python
+# Calculando distância euclidiana
+def dist(a, b, ax=1):
+    return np.linalg.norm(a - b, axis=ax)
+```
+
+
+```python
 class K_Means:
-    def __init__(self, pontos, parada = 0.00000001, max_iter = 100):
-        self.k = 3
+    def __init__(self, k, pontos, parada = 0.00000001, max_iter = 100):
+        self.k = k
         self.parada = parada
         self.max_iter = max_iter
         self.data = pontos
-
-    # Calculando distância euclidiana
-    def dist(self, a, b, ax=1):
-        return np.linalg.norm(a - b, axis=ax)
 
     def fit(self):
         # coordenada X centroide
@@ -151,12 +167,12 @@ class K_Means:
         # label dos clusters 
         self.clusters = np.zeros(len(self.data))
         # distancia entre centroide novo e centroide antigo
-        error = self.dist(self.centroids, self.centroids_old, None)
+        error = dist(self.centroids, self.centroids_old, None)
         # Loop de treinamento
         for i in range(self.max_iter):
             # atribuindo cada valor ao cluster mais próximo
             for i in range(len(self.data)):
-                distances = self.dist(self.data[i], self.centroids)
+                distances = dist(self.data[i], self.centroids)
                 self.cluster = np.argmin(distances)
                 self.clusters[i] = self.cluster
             # guardando valores do centroide antigo
@@ -164,17 +180,27 @@ class K_Means:
             # encontrando novo centroide
             for i in range(self.k):
                 self.points = [self.data[j] for j in range(len(self.data)) if self.clusters[j] == i]
-                self.centroids[i] = np.mean(self.points, axis=0)
-            error = self.dist(self.centroids, self.centroids_old, None)
+                if len(self.points) > 0:
+                    self.centroids[i] = np.mean(self.points, axis=0)
+            error = dist(self.centroids, self.centroids_old, None)
             if error <= self.parada:
                 break
+
+    def plot(self):
+        colors = int(self.k/6 + 1)*['r', 'g', 'b', 'y', 'c', 'm']
+        fig, ax = plt.subplots()
+
+        for i in range(self.k):
+            points = np.array([self.data[j] for j in range(len(self.data)) if self.clusters[j] == i])
+            ax.scatter(points[:, 0], points[:, 1], s=7, c=colors[i])
+            ax.scatter(self.centroids[:, 0], self.centroids[:, 1], marker='X', s=100, c='black')
 ```
 
 #### 4. Inicializando a classe com os parametros desejados do exercício e realizando o treinamento
 
 
 ```python
-kmeans = K_Means(pontos = X, parada = 0.0001, max_iter = 100)
+kmeans = K_Means(k = 3, pontos = X, parada = 0.0001, max_iter = 100)
 kmeans.fit()
 ```
 
@@ -224,6 +250,19 @@ dataset.head()
 
 
 <div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -280,16 +319,11 @@ dataset.head()
 
 
 ```python
-colors = ['r', 'g', 'b', 'y', 'c', 'm']
-fig, ax = plt.subplots()
-for i in range(kmeans.k):
-        points = np.array([X[j] for j in range(len(X)) if kmeans.clusters[j] == i])
-        ax.scatter(points[:, 0], points[:, 1], s=7, c=colors[i])
-        ax.scatter(kmeans.centroids[:, 0], kmeans.centroids[:, 1], marker='X', s=100, c='black')
+kmeans.plot()
 ```
 
 
-![png](imagens/output_20_0.png)
+![png](imagens/kmeans_scratch_21_0.png)
 
 
 
@@ -317,42 +351,32 @@ Os clusters representam os estados com base na quantidade de casos e mortes do C
 
 
 ```python
-dataset['centroide_x'] = np.nan
-dataset['centroide_y'] = np.nan
+def print_distancias(data, centroids):
+    dataset = data.copy()
+    dataset['centroide_x'] = np.nan
+    dataset['centroide_y'] = np.nan
+
+    for i in range(len(centroids)):
+        dataset.loc[dataset['cluster'] == i, 'centroide_x'] = centroids[i][0]
+        dataset.loc[dataset['cluster'] == i, 'centroide_y'] = centroids[i][1]
+
+    dataset['distancia'] = dist(
+        np.array(list(zip(dataset['cases'], dataset['deaths']))),
+        np.array(list(zip(dataset['centroide_x'], dataset['centroide_y'])))
+    )
+
+    for i in range(len(centroids)):  
+        print("Distância média entre os pontos do centroide {}: {}".format(i, dataset[dataset['cluster'] == i]['distancia'].mean()))
 ```
 
 
 ```python
-dataset.loc[dataset['cluster'] == 0.0, 'centroide_x'] = kmeans.centroids[0][0]
-dataset.loc[dataset['cluster'] == 0.0, 'centroide_y'] = kmeans.centroids[0][1]
-dataset.loc[dataset['cluster'] == 1.0, 'centroide_x'] = kmeans.centroids[1][0]
-dataset.loc[dataset['cluster'] == 1.0, 'centroide_y'] = kmeans.centroids[1][1]
-dataset.loc[dataset['cluster'] == 2.0, 'centroide_x'] = kmeans.centroids[2][0]
-dataset.loc[dataset['cluster'] == 2.0, 'centroide_y'] = kmeans.centroids[2][1]
+print_distancias(dataset, kmeans.centroids)
 ```
 
-
-```python
-dataset['distancia_x'] = np.abs(dataset['cases'] - dataset['centroide_x'])
-dataset['distancia_y'] = np.abs(dataset['deaths'] - dataset['centroide_y'])
-```
-
-
-```python
-print("Distância média (eixo X) entre os pontos do centroide 0.0: {}".format(np.mean(dataset[dataset['cluster']==0.0]['distancia_x'])))
-print("Distância média (eixo Y) entre os pontos do centroide 0.0: {}".format(np.mean(dataset[dataset['cluster']==0.0]['distancia_y'])))
-print("Distância média (eixo X) entre os pontos do centroide 1.0: {}".format(np.mean(dataset[dataset['cluster']==1.0]['distancia_x'])))
-print("Distância média (eixo Y) entre os pontos do centroide 1.0: {}".format(np.mean(dataset[dataset['cluster']==1.0]['distancia_y'])))
-print("Distância média (eixo X) entre os pontos do centroide 2.0: {}".format(np.mean(dataset[dataset['cluster']==2.0]['distancia_x'])))
-print("Distância média (eixo Y) entre os pontos do centroide 2.0: {}".format(np.mean(dataset[dataset['cluster']==2.0]['distancia_y'])))
-```
-
-    Distância média (eixo X) entre os pontos do centroide 0.0: 1638.429133506721
-    Distância média (eixo Y) entre os pontos do centroide 0.0: 40.70434138979055
-    Distância média (eixo X) entre os pontos do centroide 1.0: 37588.515625
-    Distância média (eixo Y) entre os pontos do centroide 1.0: 813.609375
-    Distância média (eixo X) entre os pontos do centroide 2.0: 0.0
-    Distância média (eixo Y) entre os pontos do centroide 2.0: 0.0
+    Distância média entre os pontos do centroide 0: 1639.2650000822305
+    Distância média entre os pontos do centroide 1: 37639.72339191836
+    Distância média entre os pontos do centroide 2: 0.0
 
 
 ### **Obs**: Retirando o estado de New York, a visualização do cluster fica muito melhor.
@@ -376,32 +400,27 @@ plt.scatter(cases, deaths, c='black', s=10)
 
 
 
-    <matplotlib.collections.PathCollection at 0x7fe379eeb518>
+    <matplotlib.collections.PathCollection at 0x7fe0e5592ac8>
 
 
 
 
-![png](imagens/output_31_1.png)
+![png](imagens/kmeans_scratch_30_1.png)
 
 
 
 ```python
-kmeans = K_Means(pontos = X, parada = 0.0001, max_iter = 100)
+kmeans = K_Means(k = 3, pontos = X, parada = 0.0001, max_iter = 100)
 kmeans.fit()
 ```
 
 
 ```python
-colors = ['r', 'g', 'b', 'y', 'c', 'm']
-fig, ax = plt.subplots()
-for i in range(kmeans.k):
-        points = np.array([X[j] for j in range(len(X)) if kmeans.clusters[j] == i])
-        ax.scatter(points[:, 0], points[:, 1], s=7, c=colors[i])
-        ax.scatter(kmeans.centroids[:, 0], kmeans.centroids[:, 1], marker='X', s=100, c='black')
+kmeans.plot()
 ```
 
 
-![png](imagens/output_33_0.png)
+![png](imagens/kmeans_scratch_32_0.png)
 
 
 
@@ -412,9 +431,9 @@ kmeans.centroids
 
 
 
-    array([[1.8495167e+05, 2.7943333e+03],
-           [1.0462534e+03, 2.5062702e+01],
-           [5.7526105e+04, 1.6201578e+03]], dtype=float32)
+    array([[5.7526105e+04, 1.6201578e+03],
+           [1.8495167e+05, 2.7943333e+03],
+           [1.0462534e+03, 2.5062702e+01]], dtype=float32)
 
 
 
@@ -425,40 +444,105 @@ dataset['cluster'] = kmeans.clusters
 
 
 ```python
-dataset['centroide_x'] = np.nan
-dataset['centroide_y'] = np.nan
+print_distancias(dataset, kmeans.centroids)
+```
+
+    Distância média entre os pontos do centroide 0: 15765.0704267467
+    Distância média entre os pontos do centroide 1: 4243.744484675485
+    Distância média entre os pontos do centroide 2: 1414.636105857353
+
+
+# Desafios
+
+#### Compare os resultados obtidos pelo seu algoritmo com os da função do K-Means do sklearn
+
+
+```python
+from sklearn.cluster import KMeans
+def fit_sKmeans(pontos = X, parada = 0.0001, max_iteracoes = 100,k=3):
+  sKmeans = KMeans(n_clusters=k, tol = parada, max_iter = max_iteracoes)
+  sKmeans.fit(pontos)
+  y_kmeans = sKmeans.predict(pontos)
+# desenhando   
+  plt.scatter(pontos[:, 0], pontos[:, 1], c=y_kmeans, s=7)
+  centers = sKmeans.cluster_centers_
+  plt.scatter(centers[:, 0], centers[:, 1], c='black', s=200, alpha=0.5)
+  plt.title('K-means com sklearn')
+  plt.xlabel('Cases')
+  plt.ylabel('Deaths')
+  print ('Centroids, com sklearn:',centers) 
+
 ```
 
 
 ```python
-dataset.loc[dataset['cluster'] == 0.0, 'centroide_x'] = kmeans.centroids[0][0]
-dataset.loc[dataset['cluster'] == 0.0, 'centroide_y'] = kmeans.centroids[0][1]
-dataset.loc[dataset['cluster'] == 1.0, 'centroide_x'] = kmeans.centroids[1][0]
-dataset.loc[dataset['cluster'] == 1.0, 'centroide_y'] = kmeans.centroids[1][1]
-dataset.loc[dataset['cluster'] == 2.0, 'centroide_x'] = kmeans.centroids[2][0]
-dataset.loc[dataset['cluster'] == 2.0, 'centroide_y'] = kmeans.centroids[2][1]
+#executando - com sklearn
+fit_sKmeans()
+# k_means sem o sklearn
+kmeans.plot()
+print ('Centroides com k-means:', kmeans.centroids) 
+```
+
+    Centroids, com sklearn: [[1.04625339e+03 2.50627020e+01]
+     [1.84951667e+05 2.79433333e+03]
+     [5.75261053e+04 1.62015789e+03]]
+    Centroides com k-means: [[5.7526105e+04 1.6201578e+03]
+     [1.8495167e+05 2.7943333e+03]
+     [1.0462534e+03 2.5062702e+01]]
+
+
+
+![png](imagens/kmeans_scratch_39_1.png)
+
+
+
+![png](imagens/kmeans_scratch_39_2.png)
+
+
+#### Plotar o gráfico que permite visualizar o elbow point, variando o valor de K e indicar qual o melhor valor
+
+
+```python
+def elbow_plot(data, k_max):
+    dataset = data.copy()
+    dists = []
+
+    for i in range(k_max - 2):
+        kmeans = K_Means(k = i+2, pontos = X, parada = 0.0001, max_iter = 10)
+        kmeans.fit()
+
+        dataset['cluster'] = kmeans.clusters
+        dataset['centroide_x'] = np.nan
+        dataset['centroide_y'] = np.nan
+
+        for i in range(kmeans.k):
+            dataset.loc[dataset['cluster'] == i, 'centroide_x'] = kmeans.centroids[i][0]
+            dataset.loc[dataset['cluster'] == i, 'centroide_y'] = kmeans.centroids[i][1]
+
+        dataset['distancia'] = dist(
+            np.array(list(zip(dataset['cases'], dataset['deaths']))),
+            np.array(list(zip(dataset['centroide_x'], dataset['centroide_y'])))
+        )
+        dists.append([i+2, dataset['distancia'].mean()])
+
+    x = []
+    y = []
+
+    fig, ax = plt.subplots()
+    for i in range(len(dists)):
+        x.append(dists[i][0])
+        y.append(dists[i][1])
+
+    ax.set_xlabel('Quantidade de Clusters')
+    ax.set_ylabel('Distância Média')
+
+    ax.plot(x, y, c='b', marker='x')
 ```
 
 
 ```python
-dataset['distancia_x'] = np.abs(dataset['cases'] - dataset['centroide_x'])
-dataset['distancia_y'] = np.abs(dataset['deaths'] - dataset['centroide_y'])
+elbow_plot(dataset, 10)
 ```
 
 
-```python
-print("Distância média (eixo X) entre os pontos do centroide 0.0: {}".format(np.mean(dataset[dataset['cluster']==0.0]['distancia_x'])))
-print("Distância média (eixo Y) entre os pontos do centroide 0.0: {}".format(np.mean(dataset[dataset['cluster']==0.0]['distancia_y'])))
-print("Distância média (eixo X) entre os pontos do centroide 1.0: {}".format(np.mean(dataset[dataset['cluster']==1.0]['distancia_x'])))
-print("Distância média (eixo Y) entre os pontos do centroide 1.0: {}".format(np.mean(dataset[dataset['cluster']==1.0]['distancia_y'])))
-print("Distância média (eixo X) entre os pontos do centroide 2.0: {}".format(np.mean(dataset[dataset['cluster']==2.0]['distancia_x'])))
-print("Distância média (eixo Y) entre os pontos do centroide 2.0: {}".format(np.mean(dataset[dataset['cluster']==2.0]['distancia_y'])))
-```
-
-    Distância média (eixo X) entre os pontos do centroide 0.0: 4149.557291666667
-    Distância média (eixo Y) entre os pontos do centroide 0.0: 821.111083984375
-    Distância média (eixo X) entre os pontos do centroide 1.0: 1413.854592873808
-    Distância média (eixo Y) entre os pontos do centroide 1.0: 35.405063352973215
-    Distância média (eixo X) entre os pontos do centroide 2.0: 15709.806126644737
-    Distância média (eixo Y) entre os pontos do centroide 2.0: 834.6925177323191
-
+![png](imagens/kmeans_scratch_42_0.png)
